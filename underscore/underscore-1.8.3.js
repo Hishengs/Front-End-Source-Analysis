@@ -310,6 +310,7 @@
 
   // Determine if the array or object contains a given item (using `===`).
   // Aliased as `includes` and `include`.
+  // 检测数组是否含有指定值或者对象是否含有指定键值
   _.contains = _.includes = _.include = function(obj, item, fromIndex, guard) {
     if (!isArrayLike(obj)) obj = _.values(obj);
     if (typeof fromIndex != 'number' || guard) fromIndex = 0;
@@ -318,7 +319,7 @@
 
   // Invoke a method (with arguments) on every item in a collection.
   _.invoke = function(obj, method) {
-    var args = slice.call(arguments, 2);
+    var args = slice.call(arguments, 2); // 将参数对象(类数组对象)转为数组并只取前两个值(即 obj, method )
     var isFunc = _.isFunction(method);
     return _.map(obj, function(value) {
       var func = isFunc ? method : value[method];
@@ -327,18 +328,21 @@
   };
 
   // Convenience version of a common use case of `map`: fetching a property.
+  // 选取集合中指定键名的值形成数组返回
   _.pluck = function(obj, key) {
     return _.map(obj, _.property(key));
   };
 
   // Convenience version of a common use case of `filter`: selecting only objects
   // containing specific `key:value` pairs.
+  // 选取集合中有指定键值对的对象形成数组
   _.where = function(obj, attrs) {
     return _.filter(obj, _.matcher(attrs));
   };
 
   // Convenience version of a common use case of `find`: getting the first object
   // containing specific `key:value` pairs.
+  // 返回符合指定键值对的第一个对象
   _.findWhere = function(obj, attrs) {
     return _.find(obj, _.matcher(attrs));
   };
@@ -395,6 +399,7 @@
 
   // Shuffle a collection, using the modern version of the
   // [Fisher-Yates shuffle](http://en.wikipedia.org/wiki/Fisher–Yates_shuffle).
+  // 根据 Fisher-Yates shuffle 洗牌算法打乱数组顺序，返回一个打乱后的数组
   _.shuffle = function(obj) {
     var set = isArrayLike(obj) ? obj : _.values(obj);
     var length = set.length;
