@@ -154,7 +154,7 @@
       return obj == null ? void 0 : obj[key];
     };
   };
-  
+
   // Helper for collection methods to determine whether a collection
   // should be iterated as an array or as an object
   // Related: http://people.mozilla.org/~jorendorff/es6-draft.html#sec-tolength
@@ -173,14 +173,16 @@
   // The cornerstone, an `each` implementation, aka `forEach`.
   // Handles raw objects in addition to array-likes. Treats all
   // sparse array-likes as if they were dense.
+  // 对数组成员循环执行某个方法，不改变原本的数组
+  // 其实可以使用 ES5 的 [].forEach 来代替实现同样的效果(IE9+)
   _.each = _.forEach = function(obj, iteratee, context) {
     iteratee = optimizeCb(iteratee, context);
     var i, length;
-    if (isArrayLike(obj)) {
+    if (isArrayLike(obj)) { // 数组或者类数组对象
       for (i = 0, length = obj.length; i < length; i++) {
         iteratee(obj[i], i, obj);
       }
-    } else {
+    } else { // 对象
       var keys = _.keys(obj);
       for (i = 0, length = keys.length; i < length; i++) {
         iteratee(obj[keys[i]], keys[i], obj);
@@ -190,6 +192,7 @@
   };
 
   // Return the results of applying the iteratee to each element.
+  // 对数组成员循环执行某个方法，返回改变后的数组
   _.map = _.collect = function(obj, iteratee, context) {
     iteratee = cb(iteratee, context);
     var keys = !isArrayLike(obj) && _.keys(obj),
@@ -203,6 +206,12 @@
   };
 
   // Create a reducing function iterating left or right.
+  // reduce 累积操作，将前一个操作的结果返回给后一个操作函数作为参数
+  // dir 代表方向 + 步长，dir > 0 是 left，dir < 0 是 right
+  // [1,2,3].reduce(function(x,y){return x+''+y},'4') => '4123'
+  // [1,2,3].reduceRight(function(x,y){return x+''+y},'4') => '4321'
+  // 其实 ES6 已经有相关的方法了，分别是 [].reduce 和 [].reduceRight
+  // 见： https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Array/Reduce
   function createReduce(dir) {
     // Optimized iterator function as using arguments.length
     // in the main function will deoptimize the, see #1991.
@@ -213,16 +222,19 @@
       }
       return memo;
     }
-
+    // 生成的 reduce 函数
+    // iteratee 迭代器
+    // memo 初始值
+    // context 上下文
     return function(obj, iteratee, memo, context) {
       iteratee = optimizeCb(iteratee, context, 4);
       var keys = !isArrayLike(obj) && _.keys(obj),
           length = (keys || obj).length,
-          index = dir > 0 ? 0 : length - 1;
+          index = dir > 0 ? 0 : length - 1; // 代表方向
       // Determine the initial value if none is provided.
       if (arguments.length < 3) {
-        memo = obj[keys ? keys[index] : index];
-        index += dir;
+        memo = obj[keys ? keys[index] : index]; // 取数组第一个元素作为初始值
+        index += dir; // 在 dir 的基础上做偏移
       }
       return iterator(obj, iteratee, memo, keys, index, length);
     };
@@ -236,11 +248,15 @@
   _.reduceRight = _.foldr = createReduce(-1);
 
   // Return the first value which passes a truth test. Aliased as `detect`.
+  // 查找具有特定键值对的对象
+  // obj 目标集合
+  // predicate 可是指定键值对的对象({name:'xxx'})，或者一个自定义条件函数
+  // context 上下文
   _.find = _.detect = function(obj, predicate, context) {
     var key;
-    if (isArrayLike(obj)) {
+    if (isArrayLike(obj)) { // 类数组对象
       key = _.findIndex(obj, predicate, context);
-    } else {
+    } else { // 对象
       key = _.findKey(obj, predicate, context);
     }
     if (key !== void 0 && key !== -1) return obj[key];
@@ -248,6 +264,7 @@
 
   // Return all the elements that pass a truth test.
   // Aliased as `select`.
+  // 剔除不符合条件的元素
   _.filter = _.select = function(obj, predicate, context) {
     var results = [];
     predicate = cb(predicate, context);
@@ -258,12 +275,14 @@
   };
 
   // Return all the elements for which a truth test fails.
+  // 剔除符合条件的元素
   _.reject = function(obj, predicate, context) {
     return _.filter(obj, _.negate(cb(predicate)), context);
   };
 
   // Determine whether all of the elements match a truth test.
   // Aliased as `all`.
+  // 当所有元素符合条件函数判断时返回 true，否则返回 false
   _.every = _.all = function(obj, predicate, context) {
     predicate = cb(predicate, context);
     var keys = !isArrayLike(obj) && _.keys(obj),
@@ -277,6 +296,7 @@
 
   // Determine if at least one element in the object matches a truth test.
   // Aliased as `any`.
+  // 如果有一个或以上的元素符合条件就返回 true，否则返回 false
   _.some = _.any = function(obj, predicate, context) {
     predicate = cb(predicate, context);
     var keys = !isArrayLike(obj) && _.keys(obj),
@@ -639,8 +659,11 @@
   };
 
   // Generator function to create the findIndex and findLastIndex functions
+  // 返回一个查找器
+  // dir 指定方向
+  // ECMAScript 2015 已经有对应的 findIndex 方法：Array.prototype.findIndex()
   function createPredicateIndexFinder(dir) {
-    return function(array, predicate, context) {
+    return function(array, predicate, context) { // predicate 可能是函数也可能是条件对象{name:'xxx'}
       predicate = cb(predicate, context);
       var length = getLength(array);
       var index = dir > 0 ? 0 : length - 1;
@@ -652,8 +675,8 @@
   }
 
   // Returns the first index on an array-like that passes a predicate test
-  _.findIndex = createPredicateIndexFinder(1);
-  _.findLastIndex = createPredicateIndexFinder(-1);
+  _.findIndex = createPredicateIndexFinder(1); // 从前往后找
+  _.findLastIndex = createPredicateIndexFinder(-1); // 从后往前找
 
   // Use a comparator function to figure out the smallest index at which
   // an object should be inserted so as to maintain order. Uses binary search.
