@@ -415,15 +415,18 @@
   // Sample **n** random values from a collection.
   // If **n** is not specified, returns a single random element.
   // The internal `guard` argument allows it to work with `map`.
+  // 从数组中随机返回指定个数的元素
+  // guard 用于内部使用，若 guard 为 true，则忽略参数 n
   _.sample = function(obj, n, guard) {
-    if (n == null || guard) {
-      if (!isArrayLike(obj)) obj = _.values(obj);
+    if (n == null || guard) { // 若 n 不指定，则默认返回一个元素(非数组)
+      if (!isArrayLike(obj)) obj = _.values(obj); // 如果是对象则返回键值
       return obj[_.random(obj.length - 1)];
     }
-    return _.shuffle(obj).slice(0, Math.max(0, n));
+    return _.shuffle(obj).slice(0, Math.max(0, n)); // 把数组打乱再取前 n 个元素返回
   };
 
   // Sort the object's values by a criterion produced by an iteratee.
+  // 根据提供的函数作为排序依据
   _.sortBy = function(obj, iteratee, context) {
     iteratee = cb(iteratee, context);
     return _.pluck(_.map(obj, function(value, index, list) {
@@ -436,6 +439,7 @@
       var a = left.criteria;
       var b = right.criteria;
       if (a !== b) {
+        // 任何一个数和 undefined 比较结果都是 false
         if (a > b || a === void 0) return 1;
         if (a < b || b === void 0) return -1;
       }
@@ -444,6 +448,7 @@
   };
 
   // An internal function used for aggregate "group by" operations.
+  // 返回 根据条件(behavior)将数组分组 的函数
   var group = function(behavior) {
     return function(obj, iteratee, context) {
       var result = {};
@@ -458,6 +463,7 @@
 
   // Groups the object's values by a criterion. Pass either a string attribute
   // to group by, or a function that returns the criterion.
+  // 根据条件函数将数组分为有各自属性的对象
   _.groupBy = group(function(result, value, key) {
     if (_.has(result, key)) result[key].push(value); else result[key] = [value];
   });
@@ -476,6 +482,7 @@
   });
 
   // Safely create a real, live array from anything iterable.
+  // 将可迭代的对象转化为数组
   _.toArray = function(obj) {
     if (!obj) return [];
     if (_.isArray(obj)) return slice.call(obj);
@@ -484,6 +491,7 @@
   };
 
   // Return the number of elements in an object.
+  // 返回数组(类数组对象)元素个数或者对象的属性(自有属性)个数
   _.size = function(obj) {
     if (obj == null) return 0;
     return isArrayLike(obj) ? obj.length : _.keys(obj).length;
@@ -491,6 +499,7 @@
 
   // Split a collection into two arrays: one whose elements all satisfy the given
   // predicate, and one whose elements all do not satisfy the predicate.
+  // 根据条件函数将数组分为两组
   _.partition = function(obj, predicate, context) {
     predicate = cb(predicate, context);
     var pass = [], fail = [];
@@ -500,12 +509,14 @@
     return [pass, fail];
   };
 
+  // note3: 数组相关的方法
   // Array Functions
   // ---------------
 
   // Get the first element of an array. Passing **n** will return the first N
   // values in the array. Aliased as `head` and `take`. The **guard** check
   // allows it to work with `_.map`.
+  // 获取数组第一个成员或者对象属性数组第一个
   _.first = _.head = _.take = function(array, n, guard) {
     if (array == null) return void 0;
     if (n == null || guard) return array[0];
@@ -515,6 +526,7 @@
   // Returns everything but the last entry of the array. Especially useful on
   // the arguments object. Passing **n** will return all the values in
   // the array, excluding the last N.
+  // 返回除去最后 n 个元素的其他元素数组
   _.initial = function(array, n, guard) {
     return slice.call(array, 0, Math.max(0, array.length - (n == null || guard ? 1 : n)));
   };
