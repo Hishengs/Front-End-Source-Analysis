@@ -1,5 +1,3 @@
-原项目地址：[underscore](http://underscorejs.org/)
-
 ```js
 //     Underscore.js 1.8.3
 //     http://underscorejs.org
