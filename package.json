@@ -1,0 +1,24 @@
+{
+  "name": "front-end-source-analysis",
+  "version": "1.0.0",
+  "description": "前端源码解读，脚踏实地，逐个击破",
+  "main": "index.js",
+  "directories": {
+    "doc": "doc"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "scripts": {
+    "doc": "docute doc -w -p 72"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hishengs/Front-End-Source-Analysis.git"
+  },
+  "author": "Hisheng",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Hishengs/Front-End-Source-Analysis/issues"
+  },
+  "homepage": "https://github.com/Hishengs/Front-End-Source-Analysis#readme"
+}

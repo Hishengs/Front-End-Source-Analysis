@@ -173,7 +173,7 @@
   // The cornerstone, an `each` implementation, aka `forEach`.
   // Handles raw objects in addition to array-likes. Treats all
   // sparse array-likes as if they were dense.
-  // 对数组成员循环执行某个方法，不改变原本的数组
+  // 对集合元素循环执行某个方法（不改变原本的集合）
   // 其实可以使用 ES5 的 [].forEach 来代替实现同样的效果(IE9+)
   _.each = _.forEach = function(obj, iteratee, context) {
     iteratee = optimizeCb(iteratee, context);
@@ -182,7 +182,7 @@
       for (i = 0, length = obj.length; i < length; i++) {
         iteratee(obj[i], i, obj);
       }
-    } else { // 对象
+    } else { // 对象，迭代对象是对象每个属性值
       var keys = _.keys(obj);
       for (i = 0, length = keys.length; i < length; i++) {
         iteratee(obj[keys[i]], keys[i], obj);
@@ -192,10 +192,10 @@
   };
 
   // Return the results of applying the iteratee to each element.
-  // 对数组成员循环执行某个方法，返回改变后的数组
+  // 根据迭代函数映射出一个新的集合（不改变原来的集合）
   _.map = _.collect = function(obj, iteratee, context) {
     iteratee = cb(iteratee, context);
-    var keys = !isArrayLike(obj) && _.keys(obj),
+    var keys = !isArrayLike(obj) && _.keys(obj), // 如果是对象，则迭代的是对象属性
         length = (keys || obj).length,
         results = Array(length);
     for (var index = 0; index < length; index++) {
@@ -210,7 +210,7 @@
   // dir 代表方向 + 步长，dir > 0 是 left，dir < 0 是 right
   // [1,2,3].reduce(function(x,y){return x+''+y},'4') => '4123'
   // [1,2,3].reduceRight(function(x,y){return x+''+y},'4') => '4321'
-  // 其实 ES6 已经有相关的方法了，分别是 [].reduce 和 [].reduceRight
+  // 其实 ES6 已经有相关的方法了，分别是 Array.prototype.reduce 和 Array.prototype.reduceRight
   // 见： https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Array/Reduce
   function createReduce(dir) {
     // Optimized iterator function as using arguments.length
@@ -222,7 +222,7 @@
       }
       return memo;
     }
-    // 生成的 reduce 函数
+    // 生成的 reducer 函数
     // iteratee 迭代器
     // memo 初始值
     // context 上下文
@@ -230,11 +230,11 @@
       iteratee = optimizeCb(iteratee, context, 4);
       var keys = !isArrayLike(obj) && _.keys(obj),
           length = (keys || obj).length,
-          index = dir > 0 ? 0 : length - 1; // 代表方向
+          index = dir > 0 ? 0 : length - 1; // 代表方向，正数从左到右，负数从右到左
       // Determine the initial value if none is provided.
       if (arguments.length < 3) {
         memo = obj[keys ? keys[index] : index]; // 取数组第一个元素作为初始值
-        index += dir; // 在 dir 的基础上做偏移
+        index += dir; // 在 dir 的基础上做偏移（步长）
       }
       return iterator(obj, iteratee, memo, keys, index, length);
     };
@@ -242,13 +242,15 @@
 
   // **Reduce** builds up a single result from a list of values, aka `inject`,
   // or `foldl`.
+  // 从左到右的 reducer
   _.reduce = _.foldl = _.inject = createReduce(1);
 
   // The right-associative version of reduce, also known as `foldr`.
+  // 从右到左的 reducer
   _.reduceRight = _.foldr = createReduce(-1);
 
   // Return the first value which passes a truth test. Aliased as `detect`.
-  // 查找具有特定键值对的对象
+  // 从集合中寻找目标元素并返回该元素
   // obj 目标集合
   // predicate 可是指定键值对的对象({name:'xxx'})，或者一个自定义条件函数
   // context 上下文
@@ -260,13 +262,15 @@
       key = _.findKey(obj, predicate, context);
     }
     if (key !== void 0 && key !== -1) return obj[key];
+    // 不用写 else return undefined;
+    // 因为函数结束时默认返回值就是 undefined
   };
 
   // Return all the elements that pass a truth test.
   // Aliased as `select`.
-  // 剔除不符合条件的元素
+  // 过滤留下符合条件的元素，返回新的集合（不改变原数组）
   _.filter = _.select = function(obj, predicate, context) {
-    var results = [];
+    var results = []; // 保存新的集合
     predicate = cb(predicate, context);
     _.each(obj, function(value, index, list) {
       if (predicate(value, index, list)) results.push(value);
@@ -275,9 +279,9 @@
   };
 
   // Return all the elements for which a truth test fails.
-  // 剔除符合条件的元素
+  // 剔除符合条件的元素，返回新的集合（不改变原数组）
   _.reject = function(obj, predicate, context) {
-    return _.filter(obj, _.negate(cb(predicate)), context);
+    return _.filter(obj, _.negate(cb(predicate)), context); // _.negate 对传入的条件函数包装，对其返回值取反
   };
 
   // Determine whether all of the elements match a truth test.
@@ -289,7 +293,7 @@
         length = (keys || obj).length;
     for (var index = 0; index < length; index++) {
       var currentKey = keys ? keys[index] : index;
-      if (!predicate(obj[currentKey], currentKey, obj)) return false;
+      if (!predicate(obj[currentKey], currentKey, obj)) return false; // 只要有一个不符合，立即返回 false
     }
     return true;
   };
@@ -297,6 +301,7 @@
   // Determine if at least one element in the object matches a truth test.
   // Aliased as `any`.
   // 如果有一个或以上的元素符合条件就返回 true，否则返回 false
+  // 类似 _.all，有一个为真，则条件成立
   _.some = _.any = function(obj, predicate, context) {
     predicate = cb(predicate, context);
     var keys = !isArrayLike(obj) && _.keys(obj),
@@ -311,15 +316,20 @@
   // Determine if the array or object contains a given item (using `===`).
   // Aliased as `includes` and `include`.
   // 检测数组是否含有指定值或者对象是否含有指定键值
+  // item 指定值
   _.contains = _.includes = _.include = function(obj, item, fromIndex, guard) {
+    // 这一步有个认识误区，以为 obj 会被重新赋值
+    // 其实函数参数只是对函数外变量的一个引用而已
+    // 因此重新赋值只是改变了函数的参数变量
     if (!isArrayLike(obj)) obj = _.values(obj);
     if (typeof fromIndex != 'number' || guard) fromIndex = 0;
     return _.indexOf(obj, item, fromIndex) >= 0;
   };
 
   // Invoke a method (with arguments) on every item in a collection.
+  // 触发执行集合元素对应的方法
   _.invoke = function(obj, method) {
-    var args = slice.call(arguments, 2); // 将参数对象(类数组对象)转为数组并只取前两个值(即 obj, method )
+    var args = slice.call(arguments, 2); // 取(obj, method)之外的其他参数
     var isFunc = _.isFunction(method);
     return _.map(obj, function(value) {
       var func = isFunc ? method : value[method];
@@ -348,18 +358,19 @@
   };
 
   // Return the maximum element (or element-based computation).
+  // 取集合里面的最大值
   _.max = function(obj, iteratee, context) {
     var result = -Infinity, lastComputed = -Infinity,
         value, computed;
-    if (iteratee == null && obj != null) {
-      obj = isArrayLike(obj) ? obj : _.values(obj);
+    if (iteratee == null && obj != null) { // 没有提供迭代函数，则直接使用大小比较
+      obj = isArrayLike(obj) ? obj : _.values(obj); // 注意如果是对象，则比较其值
       for (var i = 0, length = obj.length; i < length; i++) {
         value = obj[i];
         if (value > result) {
           result = value;
         }
       }
-    } else {
+    } else { // 如果提供了迭代函数（iteratee），则根据函数计算后的结果比较
       iteratee = cb(iteratee, context);
       _.each(obj, function(value, index, list) {
         computed = iteratee(value, index, list);
@@ -373,6 +384,8 @@
   };
 
   // Return the minimum element (or element-based computation).
+  // 取集合里的最小值
+  // 类比 _.max
   _.min = function(obj, iteratee, context) {
     var result = Infinity, lastComputed = Infinity,
         value, computed;
@@ -405,6 +418,7 @@
     var length = set.length;
     var shuffled = Array(length);
     for (var index = 0, rand; index < length; index++) {
+      // 以下操作表示从已打乱的牌中抽出一张和当前牌交换
       rand = _.random(0, index);
       if (rand !== index) shuffled[index] = shuffled[rand];
       shuffled[rand] = set[index];
@@ -427,13 +441,14 @@
 
   // Sort the object's values by a criterion produced by an iteratee.
   // 根据提供的函数作为排序依据
+  // criteria: 标准
   _.sortBy = function(obj, iteratee, context) {
     iteratee = cb(iteratee, context);
     return _.pluck(_.map(obj, function(value, index, list) {
       return {
         value: value,
         index: index,
-        criteria: iteratee(value, index, list)
+        criteria: iteratee(value, index, list) // 如果有迭代函数，则根据此函数转换后的值进行排序，没有的话，则只是简单地返回传入的值
       };
     }).sort(function(left, right) {
       var a = left.criteria;
@@ -443,12 +458,12 @@
         if (a > b || a === void 0) return 1;
         if (a < b || b === void 0) return -1;
       }
-      return left.index - right.index;
+      return left.index - right.index; // 保持原来位置关系不变
     }), 'value');
   };
 
   // An internal function used for aggregate "group by" operations.
-  // 返回 根据条件(behavior)将数组分组 的函数
+  // 返回 根据条件(behavior)将集合分组 的函数
   var group = function(behavior) {
     return function(obj, iteratee, context) {
       var result = {};
@@ -485,15 +500,16 @@
   // 将可迭代的对象转化为数组
   _.toArray = function(obj) {
     if (!obj) return [];
-    if (_.isArray(obj)) return slice.call(obj);
+    if (_.isArray(obj)) return slice.call(obj); // 使用 slice.call 是为了返回一个新的数组
     if (isArrayLike(obj)) return _.map(obj, _.identity);
-    return _.values(obj);
+    return _.values(obj); // 如果是对象，直接取其值数组
   };
 
   // Return the number of elements in an object.
-  // 返回数组(类数组对象)元素个数或者对象的属性(自有属性)个数
+  // 返回集合元素个数
+  // 集合可包括：数组、类数组、对象、字符串等
   _.size = function(obj) {
-    if (obj == null) return 0;
+    if (obj == null) return 0; // obj == null，两种情况：null、undefined
     return isArrayLike(obj) ? obj.length : _.keys(obj).length;
   };
 

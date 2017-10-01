@@ -173,6 +173,7 @@ var isArrayLike = function(collection) { // 检测是否是 类数组对象(一�
 };
 ```
 
+
 ## Collection
 从 `// Collection Functions` 注释开始，是集合相关方法的起点。
 
