@@ -35,6 +35,7 @@ export function validateProp (
     }
   }
   // check default value
+  // value 存在 undefined 的情况，例如：props: ['propA', 'propB'],
   if (value === undefined) {
     value = getPropDefaultValue(vm, prop, key)
     // since the default value is a fresh copy,

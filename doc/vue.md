@@ -244,9 +244,13 @@ export function initState (vm: Component) {
 ```js
 function initData (vm: Component) {
   let data = vm.$options.data
+  // 这里对 data 的类型进行判断
+  // 如果是函数，调用 getData 执行 data.call(vm) 得到返回的对象
+  // 否则直接返回 data 或者 空对象
   data = vm._data = typeof data === 'function'
     ? getData(data, vm)
     : data || {}
+  // 如果得到的 data 不是纯粹的对象，则直接将一个空的对象赋值给 data
   if (!isPlainObject(data)) {
     data = {}
     process.env.NODE_ENV !== 'production' && warn(
@@ -263,6 +267,7 @@ function initData (vm: Component) {
   while (i--) {
     const key = keys[i]
     if (process.env.NODE_ENV !== 'production') {
+      // data 是否与 methods 存在相同的键值
       if (methods && hasOwn(methods, key)) {
         warn(
           `Method "${key}" has already been defined as a data property.`,
@@ -271,16 +276,18 @@ function initData (vm: Component) {
       }
     }
     if (props && hasOwn(props, key)) {
+      // data 是否与 props 存在相同的键值
       process.env.NODE_ENV !== 'production' && warn(
         `The data property "${key}" is already declared as a prop. ` +
         `Use prop default value instead.`,
         vm
       )
-    } else if (!isReserved(key)) {
+    } else if (!isReserved(key)) { // 是否是保留的键值
       proxy(vm, `_data`, key)
     }
   }
   // observe data
+  // 这一步很关键，实现对 data 数据的观察，也就是通过 getter/setter 监听数据变动，从而收集依赖，触发视图更新等
   observe(data, true /* asRootData */)
 }
 ```
@@ -298,6 +305,7 @@ function initProps (vm: Component, propsOptions: Object) {
   observerState.shouldConvert = isRoot
   for (const key in propsOptions) {
     keys.push(key)
+    // 这里会对 props 的值进行检验，返回或者设置正确的默认值
     const value = validateProp(key, propsOptions, propsData, vm)
     /* istanbul ignore else */
     if (process.env.NODE_ENV !== 'production') {
@@ -335,6 +343,7 @@ function initProps (vm: Component, propsOptions: Object) {
 ##### computed > initComputed
 ```js
 function initComputed (vm: Component, computed: Object) {
+  // 这里 checkOptionType 方法主要用于检测实例下的配置项是否是对象
   process.env.NODE_ENV !== 'production' && checkOptionType(vm, 'computed')
   const watchers = vm._computedWatchers = Object.create(null)
   // computed properties are just getters during SSR
@@ -366,6 +375,7 @@ function initComputed (vm: Component, computed: Object) {
     if (!(key in vm)) {
       defineComputed(vm, key, userDef)
     } else if (process.env.NODE_ENV !== 'production') {
+      // 检查键值是否已在 data 和 props 中已定义过
       if (key in vm.$data) {
         warn(`The computed property "${key}" is already defined in data.`, vm)
       } else if (vm.$options.props && key in vm.$options.props) {
@@ -420,6 +430,7 @@ function initMethods (vm: Component, methods: Object) {
         )
       }
     }
+    // 对每个方法进行 this 绑定，context => vm
     vm[key] = methods[key] == null ? noop : bind(methods[key], vm)
   }
 }
