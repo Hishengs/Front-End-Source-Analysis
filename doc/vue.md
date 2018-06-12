@@ -20,8 +20,11 @@ function Vue (options) {
   if (process.env.NODE_ENV !== 'production' &&
     !(this instanceof Vue)
   ) {
+    // 如果未通过 new 实例化，会直接报错，`this._init` 不会被执行
     warn('Vue is a constructor and should be called with the `new` keyword')
   }
+  // 在这个函数里，会分别调用 `init, state, render, event, lifecycle` 模块的初始化函数
+  // 这个函数在下面的 initMixn 时被定义
   this._init(options) // 在使用构造函数实例化时调用
 }
 
@@ -34,7 +37,7 @@ renderMixin(Vue)
 export default Vue
 
 ```
-看得出来，分别依次调用了 state, render, events, lifecycle 等的初始化函数。在真正使用 vue 构造函数时，即 `new Vue()` 时内部会调用 `this._init` 方法。
+在实例化 Vue 时，即 `new Vue()` 时内部会调用 `this._init` 方法执行各个模块的初始化方法。
 
 ### initMixin
 
@@ -489,7 +492,284 @@ export function stateMixin (Vue: Class<Component>) {
 ```
 
 ### eventsMixin
+这个函数主要定义了 Vue 事件相关的方法：`$on`, `$emit`, `$once`, `$off`。
+```js
+export function eventsMixin (Vue: Class<Component>) {
+  const hookRE = /^hook:/
+  Vue.prototype.$on = function (event: string | Array<string>, fn: Function): Component {
+    const vm: Component = this
+    if (Array.isArray(event)) {
+      for (let i = 0, l = event.length; i < l; i++) {
+        this.$on(event[i], fn)
+      }
+    } else {
+      (vm._events[event] || (vm._events[event] = [])).push(fn)
+      // optimize hook:event cost by using a boolean flag marked at registration
+      // instead of a hash lookup
+      if (hookRE.test(event)) {
+        vm._hasHookEvent = true
+      }
+    }
+    return vm
+  }
+
+  Vue.prototype.$once = function (event: string, fn: Function): Component {
+    const vm: Component = this
+    function on () {
+      vm.$off(event, on)
+      fn.apply(vm, arguments)
+    }
+    on.fn = fn
+    vm.$on(event, on)
+    return vm
+  }
+
+  Vue.prototype.$off = function (event?: string | Array<string>, fn?: Function): Component {
+    const vm: Component = this
+    // all
+    if (!arguments.length) {
+      vm._events = Object.create(null)
+      return vm
+    }
+    // array of events
+    if (Array.isArray(event)) {
+      for (let i = 0, l = event.length; i < l; i++) {
+        this.$off(event[i], fn)
+      }
+      return vm
+    }
+    // specific event
+    const cbs = vm._events[event]
+    if (!cbs) {
+      return vm
+    }
+    if (arguments.length === 1) {
+      vm._events[event] = null
+      return vm
+    }
+    if (fn) {
+      // specific handler
+      let cb
+      let i = cbs.length
+      while (i--) {
+        cb = cbs[i]
+        if (cb === fn || cb.fn === fn) {
+          cbs.splice(i, 1)
+          break
+        }
+      }
+    }
+    return vm
+  }
+
+  Vue.prototype.$emit = function (event: string): Component {
+    const vm: Component = this
+    if (process.env.NODE_ENV !== 'production') {
+      const lowerCaseEvent = event.toLowerCase()
+      if (lowerCaseEvent !== event && vm._events[lowerCaseEvent]) {
+        tip(
+          `Event "${lowerCaseEvent}" is emitted in component ` +
+          `${formatComponentName(vm)} but the handler is registered for "${event}". ` +
+          `Note that HTML attributes are case-insensitive and you cannot use ` +
+          `v-on to listen to camelCase events when using in-DOM templates. ` +
+          `You should probably use "${hyphenate(event)}" instead of "${event}".`
+        )
+      }
+    }
+    let cbs = vm._events[event]
+    if (cbs) {
+      cbs = cbs.length > 1 ? toArray(cbs) : cbs
+      const args = toArray(arguments, 1)
+      for (let i = 0, l = cbs.length; i < l; i++) {
+        try {
+          cbs[i].apply(vm, args)
+        } catch (e) {
+          handleError(e, vm, `event handler for "${event}"`)
+        }
+      }
+    }
+    return vm
+  }
+}
+```
 
 ### lifecycleMixin
+```js
+export function lifecycleMixin (Vue: Class<Component>) {
+  Vue.prototype._update = function (vnode: VNode, hydrating?: boolean) {
+    const vm: Component = this
+    if (vm._isMounted) {
+      callHook(vm, 'beforeUpdate')
+    }
+    const prevEl = vm.$el
+    const prevVnode = vm._vnode
+    const prevActiveInstance = activeInstance
+    activeInstance = vm
+    vm._vnode = vnode
+    // Vue.prototype.__patch__ is injected in entry points
+    // based on the rendering backend used.
+    if (!prevVnode) {
+      // initial render
+      vm.$el = vm.__patch__(
+        vm.$el, vnode, hydrating, false /* removeOnly */,
+        vm.$options._parentElm,
+        vm.$options._refElm
+      )
+      // no need for the ref nodes after initial patch
+      // this prevents keeping a detached DOM tree in memory (#5851)
+      vm.$options._parentElm = vm.$options._refElm = null
+    } else {
+      // updates
+      vm.$el = vm.__patch__(prevVnode, vnode)
+    }
+    activeInstance = prevActiveInstance
+    // update __vue__ reference
+    if (prevEl) {
+      prevEl.__vue__ = null
+    }
+    if (vm.$el) {
+      vm.$el.__vue__ = vm
+    }
+    // if parent is an HOC, update its $el as well
+    if (vm.$vnode && vm.$parent && vm.$vnode === vm.$parent._vnode) {
+      vm.$parent.$el = vm.$el
+    }
+    // updated hook is called by the scheduler to ensure that children are
+    // updated in a parent's updated hook.
+  }
+
+  Vue.prototype.$forceUpdate = function () {
+    const vm: Component = this
+    if (vm._watcher) {
+      vm._watcher.update()
+    }
+  }
+
+  Vue.prototype.$destroy = function () {
+    const vm: Component = this
+    if (vm._isBeingDestroyed) {
+      return
+    }
+    callHook(vm, 'beforeDestroy')
+    vm._isBeingDestroyed = true
+    // remove self from parent
+    const parent = vm.$parent
+    if (parent && !parent._isBeingDestroyed && !vm.$options.abstract) {
+      remove(parent.$children, vm)
+    }
+    // teardown watchers
+    if (vm._watcher) {
+      vm._watcher.teardown()
+    }
+    let i = vm._watchers.length
+    while (i--) {
+      vm._watchers[i].teardown()
+    }
+    // remove reference from data ob
+    // frozen object may not have observer.
+    if (vm._data.__ob__) {
+      vm._data.__ob__.vmCount--
+    }
+    // call the last hook...
+    vm._isDestroyed = true
+    // invoke destroy hooks on current rendered tree
+    vm.__patch__(vm._vnode, null)
+    // fire destroyed hook
+    callHook(vm, 'destroyed')
+    // turn off all instance listeners.
+    vm.$off()
+    // remove __vue__ reference
+    if (vm.$el) {
+      vm.$el.__vue__ = null
+    }
+  }
+}
+```
 
 ### renderMixin
+```js
+export function renderMixin (Vue: Class<Component>) {
+  Vue.prototype.$nextTick = function (fn: Function) {
+    return nextTick(fn, this)
+  }
+
+  Vue.prototype._render = function (): VNode {
+    const vm: Component = this
+    const {
+      render,
+      staticRenderFns,
+      _parentVnode
+    } = vm.$options
+
+    if (vm._isMounted) {
+      // if the parent didn't update, the slot nodes will be the ones from
+      // last render. They need to be cloned to ensure "freshness" for this render.
+      for (const key in vm.$slots) {
+        const slot = vm.$slots[key]
+        if (slot._rendered) {
+          vm.$slots[key] = cloneVNodes(slot, true /* deep */)
+        }
+      }
+    }
+
+    vm.$scopedSlots = (_parentVnode && _parentVnode.data.scopedSlots) || emptyObject
+
+    if (staticRenderFns && !vm._staticTrees) {
+      vm._staticTrees = []
+    }
+    // set parent vnode. this allows render functions to have access
+    // to the data on the placeholder node.
+    vm.$vnode = _parentVnode
+    // render self
+    let vnode
+    try {
+      vnode = render.call(vm._renderProxy, vm.$createElement)
+    } catch (e) {
+      handleError(e, vm, `render function`)
+      // return error render result,
+      // or previous vnode to prevent render error causing blank component
+      /* istanbul ignore else */
+      if (process.env.NODE_ENV !== 'production') {
+        vnode = vm.$options.renderError
+          ? vm.$options.renderError.call(vm._renderProxy, vm.$createElement, e)
+          : vm._vnode
+      } else {
+        vnode = vm._vnode
+      }
+    }
+    // return empty vnode in case the render function errored out
+    if (!(vnode instanceof VNode)) {
+      if (process.env.NODE_ENV !== 'production' && Array.isArray(vnode)) {
+        warn(
+          'Multiple root nodes returned from render function. Render function ' +
+          'should return a single root node.',
+          vm
+        )
+      }
+      vnode = createEmptyVNode()
+    }
+    // set parent
+    vnode.parent = _parentVnode
+    return vnode
+  }
+
+  // internal render helpers.
+  // these are exposed on the instance prototype to reduce generated render
+  // code size.
+  Vue.prototype._o = markOnce
+  Vue.prototype._n = toNumber
+  Vue.prototype._s = toString
+  Vue.prototype._l = renderList
+  Vue.prototype._t = renderSlot
+  Vue.prototype._q = looseEqual
+  Vue.prototype._i = looseIndexOf
+  Vue.prototype._m = renderStatic
+  Vue.prototype._f = resolveFilter
+  Vue.prototype._k = checkKeyCodes
+  Vue.prototype._b = bindObjectProps
+  Vue.prototype._v = createTextVNode
+  Vue.prototype._e = createEmptyVNode
+  Vue.prototype._u = resolveScopedSlots
+  Vue.prototype._g = bindObjectListeners
+}
+```

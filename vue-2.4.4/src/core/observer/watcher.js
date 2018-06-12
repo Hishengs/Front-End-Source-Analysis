@@ -46,24 +46,26 @@ export default class Watcher {
     options?: Object
   ) {
     this.vm = vm
+    // 实例新增观察者
     vm._watchers.push(this)
     // options
     if (options) {
-      this.deep = !!options.deep
+      this.deep = !!options.deep // 深度观察
       this.user = !!options.user
       this.lazy = !!options.lazy
       this.sync = !!options.sync
     } else {
       this.deep = this.user = this.lazy = this.sync = false
     }
-    this.cb = cb
+    this.cb = cb // 当依赖变化时触发的回调
     this.id = ++uid // uid for batching
     this.active = true
     this.dirty = this.lazy // for lazy watchers
-    this.deps = []
+    this.deps = [] // 所有的依赖
     this.newDeps = []
     this.depIds = new Set()
     this.newDepIds = new Set()
+    // 监听的表达式，类似于 `a.b.c`
     this.expression = process.env.NODE_ENV !== 'production'
       ? expOrFn.toString()
       : ''
@@ -71,6 +73,7 @@ export default class Watcher {
     if (typeof expOrFn === 'function') {
       this.getter = expOrFn
     } else {
+      // 将表达式转换成可执行函数 cb(obj) => obj['a']['b']['c']
       this.getter = parsePath(expOrFn)
       if (!this.getter) {
         this.getter = function () {}
@@ -105,6 +108,7 @@ export default class Watcher {
     } finally {
       // "touch" every property so they are all tracked as
       // dependencies for deep watching
+      // 深度观察会递归对象每个属性并添加观察
       if (this.deep) {
         traverse(value)
       }
@@ -117,6 +121,7 @@ export default class Watcher {
   /**
    * Add a dependency to this directive.
    */
+  // 添加依赖项
   addDep (dep: Dep) {
     const id = dep.id
     if (!this.newDepIds.has(id)) {
@@ -131,6 +136,7 @@ export default class Watcher {
   /**
    * Clean up for dependency collection.
    */
+  // 新依赖性与旧依赖性做比较，移除不需要的依赖性，并交换新旧依赖，重置新依赖为空
   cleanupDeps () {
     let i = this.deps.length
     while (i--) {
@@ -248,9 +254,11 @@ function traverse (val: any) {
 function _traverse (val: any, seen: ISet) {
   let i, keys
   const isA = Array.isArray(val)
+  // 如果不是数组或者可扩展的对象，直接结束
   if ((!isA && !isObject(val)) || !Object.isExtensible(val)) {
     return
   }
+  // 防止被重复添加观察
   if (val.__ob__) {
     const depId = val.__ob__.dep.id
     if (seen.has(depId)) {
@@ -258,6 +266,7 @@ function _traverse (val: any, seen: ISet) {
     }
     seen.add(depId)
   }
+  // 如果是数组，循环调用此方法
   if (isA) {
     i = val.length
     while (i--) _traverse(val[i], seen)

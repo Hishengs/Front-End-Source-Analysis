@@ -36,6 +36,7 @@ export default class Dep {
   notify () {
     // stabilize the subscriber list first
     const subs = this.subs.slice()
+    // 触发所有的观察者更新
     for (let i = 0, l = subs.length; i < l; i++) {
       subs[i].update()
     }

@@ -34,6 +34,7 @@ const sharedPropertyDefinition = {
   set: noop
 }
 
+// 在两个对象之间创建代理
 export function proxy (target: Object, sourceKey: string, key: string) {
   sharedPropertyDefinition.get = function proxyGetter () {
     return this[sourceKey][key]
@@ -44,6 +45,7 @@ export function proxy (target: Object, sourceKey: string, key: string) {
   Object.defineProperty(target, key, sharedPropertyDefinition)
 }
 
+// 包含 props, methods, data, computed, watch 等的初始化
 export function initState (vm: Component) {
   vm._watchers = []
   const opts = vm.$options
@@ -60,6 +62,7 @@ export function initState (vm: Component) {
   }
 }
 
+// 对 computed, methods, watch 进行类型检查，必须是对象
 function checkOptionType (vm: Component, name: string) {
   const option = vm.$options[name]
   if (!isPlainObject(option)) {
@@ -81,9 +84,11 @@ function initProps (vm: Component, propsOptions: Object) {
   observerState.shouldConvert = isRoot
   for (const key in propsOptions) {
     keys.push(key)
+    // 检查 props 的值，如果没有，设置默认值并返回
     const value = validateProp(key, propsOptions, propsData, vm)
     /* istanbul ignore else */
     if (process.env.NODE_ENV !== 'production') {
+      // 是否是保留的关键字
       if (isReservedAttribute(key) || config.isReservedAttr(key)) {
         warn(
           `"${key}" is a reserved attribute and cannot be used as component prop.`,
@@ -119,6 +124,7 @@ function initData (vm: Component) {
   data = vm._data = typeof data === 'function'
     ? getData(data, vm)
     : data || {}
+  // data 必须是纯对象或者执行结果是对象的函数
   if (!isPlainObject(data)) {
     data = {}
     process.env.NODE_ENV !== 'production' && warn(
@@ -134,6 +140,7 @@ function initData (vm: Component) {
   let i = keys.length
   while (i--) {
     const key = keys[i]
+    // 检查在 props 和 methods 中是否存在同名属性和方法
     if (process.env.NODE_ENV !== 'production') {
       if (methods && hasOwn(methods, key)) {
         warn(
@@ -149,10 +156,12 @@ function initData (vm: Component) {
         vm
       )
     } else if (!isReserved(key)) {
+      // 在实例上为 data 的各个属性创建代理，vm.a === vm.data.a
       proxy(vm, `_data`, key)
     }
   }
   // observe data
+  // 为 data 添加观察
   observe(data, true /* asRootData */)
 }
 
@@ -169,12 +178,14 @@ const computedWatcherOptions = { lazy: true }
 
 function initComputed (vm: Component, computed: Object) {
   process.env.NODE_ENV !== 'production' && checkOptionType(vm, 'computed')
+  // 所有计算属性相关的观察者
   const watchers = vm._computedWatchers = Object.create(null)
   // computed properties are just getters during SSR
   const isSSR = isServerRendering()
 
   for (const key in computed) {
     const userDef = computed[key]
+    // 计算属性的值可以是一个函数或者包含 getter/setter 的对象
     const getter = typeof userDef === 'function' ? userDef : userDef.get
     if (process.env.NODE_ENV !== 'production' && getter == null) {
       warn(
@@ -185,6 +196,7 @@ function initComputed (vm: Component, computed: Object) {
 
     if (!isSSR) {
       // create internal watcher for the computed property.
+      // 为每一个 computed 创建一个观察者
       watchers[key] = new Watcher(
         vm,
         getter || noop,
@@ -199,6 +211,7 @@ function initComputed (vm: Component, computed: Object) {
     if (!(key in vm)) {
       defineComputed(vm, key, userDef)
     } else if (process.env.NODE_ENV !== 'production') {
+      // 检查计算属性是否与 data 和 props 冲突
       if (key in vm.$data) {
         warn(`The computed property "${key}" is already defined in data.`, vm)
       } else if (vm.$options.props && key in vm.$options.props) {
@@ -260,6 +273,9 @@ function initMethods (vm: Component, methods: Object) {
   process.env.NODE_ENV !== 'production' && checkOptionType(vm, 'methods')
   const props = vm.$options.props
   for (const key in methods) {
+    // 1. 检查是否与 props 冲突
+    // 2. 检查方法是否为 null
+    // 3. 检查是否是保留的关键字
     if (process.env.NODE_ENV !== 'production') {
       if (methods[key] == null) {
         warn(
