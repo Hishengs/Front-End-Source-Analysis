@@ -31,6 +31,7 @@ export const observerState = {
  * object's property keys into getter/setters that
  * collect dependencies and dispatches updates.
  */
+// 将对象所有属性转为响应式的属性
 export class Observer {
   value: any;
   dep: Dep;

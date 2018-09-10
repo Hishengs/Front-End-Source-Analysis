@@ -9,7 +9,7 @@
   "dependencies": {},
   "devDependencies": {},
   "scripts": {
-    "doc": "docute doc -w -p 72"
+    "doc": "docute doc -w -p 72 --open"
   },
   "repository": {
     "type": "git",

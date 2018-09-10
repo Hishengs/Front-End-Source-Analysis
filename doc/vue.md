@@ -442,6 +442,7 @@ function initMethods (vm: Component, methods: Object) {
 
 
 ### stateMixin
+主要定义了3个实例方法：`$watch, $set, $get` 和 2个属性：`$data, $props`
 ```js
 export function stateMixin (Vue: Class<Component>) {
   // flow somehow has problems with directly declared definition object
@@ -594,6 +595,7 @@ export function eventsMixin (Vue: Class<Component>) {
 ```
 
 ### lifecycleMixin
+定义了2个实例方法：`$update, $forceUpdate`
 ```js
 export function lifecycleMixin (Vue: Class<Component>) {
   Vue.prototype._update = function (vnode: VNode, hydrating?: boolean) {
@@ -687,6 +689,7 @@ export function lifecycleMixin (Vue: Class<Component>) {
 ```
 
 ### renderMixin
+定义了1个实例方法：`$nextTick` 以及一系列渲染相关的帮助函数
 ```js
 export function renderMixin (Vue: Class<Component>) {
   Vue.prototype.$nextTick = function (fn: Function) {
