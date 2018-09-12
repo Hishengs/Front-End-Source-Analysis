@@ -35,6 +35,7 @@ const sharedPropertyDefinition = {
 }
 
 // 在两个对象之间创建代理
+// 譬如在实例上直接代理 _data, _props 等属性
 export function proxy (target: Object, sourceKey: string, key: string) {
   sharedPropertyDefinition.get = function proxyGetter () {
     return this[sourceKey][key]
@@ -74,12 +75,17 @@ function checkOptionType (vm: Component, name: string) {
 }
 
 function initProps (vm: Component, propsOptions: Object) {
+  // 创建实例时传递的 props，主要用于测试
   const propsData = vm.$options.propsData || {}
+  // 初始化实际 props
   const props = vm._props = {}
   // cache prop keys so that future props updates can iterate using Array
   // instead of dynamic object key enumeration.
+  // 缓存 props 的键值后续使用
   const keys = vm.$options._propKeys = []
+  // 是否是根组件
   const isRoot = !vm.$parent
+  // 对根组件的 props 进行转化【?】
   // root instance props should be converted
   observerState.shouldConvert = isRoot
   for (const key in propsOptions) {
@@ -244,6 +250,7 @@ export function defineComputed (
   }
   if (process.env.NODE_ENV !== 'production' &&
       sharedPropertyDefinition.set === noop) {
+    // 只设置了 get 没有设置 set，更新数据时会报错
     sharedPropertyDefinition.set = function () {
       warn(
         `Computed property "${key}" was assigned to but it has no setter.`,
@@ -251,9 +258,11 @@ export function defineComputed (
       )
     }
   }
+  // 在实例上定义对应的属性
   Object.defineProperty(target, key, sharedPropertyDefinition)
 }
 
+// watcher 收集依赖计算新值
 function createComputedGetter (key) {
   return function computedGetter () {
     const watcher = this._computedWatchers && this._computedWatchers[key]
@@ -284,12 +293,14 @@ function initMethods (vm: Component, methods: Object) {
           vm
         )
       }
+      // 检查字段是否已在 props 定义过
       if (props && hasOwn(props, key)) {
         warn(
           `Method "${key}" has already been defined as a prop.`,
           vm
         )
       }
+      // 检查是否是保留关键字
       if ((key in vm) && isReserved(key)) {
         warn(
           `Method "${key}" conflicts with an existing Vue instance method. ` +
@@ -321,10 +332,12 @@ function createWatcher (
   handler: any,
   options?: Object
 ) {
+  // 对非 function 的 handler 进行转化
   if (isPlainObject(handler)) {
     options = handler
     handler = handler.handler
   }
+  // 直接指定 methods 中一个方法作为 handler
   if (typeof handler === 'string') {
     handler = vm[handler]
   }

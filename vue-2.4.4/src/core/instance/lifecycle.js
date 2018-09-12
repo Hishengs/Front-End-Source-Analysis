@@ -23,6 +23,7 @@ export let isUpdatingChildComponent: boolean = false
 export function initLifecycle (vm: Component) {
   const options = vm.$options
 
+  // 没看懂【?】定位父组件？
   // locate first non-abstract parent
   let parent = options.parent
   if (parent && !options.abstract) {
@@ -32,10 +33,14 @@ export function initLifecycle (vm: Component) {
     parent.$children.push(vm)
   }
 
+  // $parent 代表父组件
   vm.$parent = parent
+  // $root 代表根组件，如果没有，表示本身就是根组件
   vm.$root = parent ? parent.$root : vm
 
+  // 子组件列表
   vm.$children = []
+  // 对子组件的实例引用
   vm.$refs = {}
 
   vm._watcher = null

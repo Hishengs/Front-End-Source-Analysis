@@ -18,6 +18,7 @@ export function initMixin (Vue: Class<Component>) {
     // a uid
     vm._uid = uid++
 
+    // Vue 实例初始化性能测试【开始】
     let startTag, endTag
     /* istanbul ignore if */
     if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
@@ -26,8 +27,11 @@ export function initMixin (Vue: Class<Component>) {
       mark(startTag)
     }
 
+    // 暂时不知道用来干嘛【?】
     // a flag to avoid this being observed
     vm._isVue = true
+    // _isComponent 用于标记实例是否是内部组件【?】
+    // 参数合并
     // merge options
     if (options && options._isComponent) {
       // optimize internal component instantiation
@@ -50,14 +54,17 @@ export function initMixin (Vue: Class<Component>) {
     // expose real self
     vm._self = vm
     initLifecycle(vm)
+    // 初始化事件对象
     initEvents(vm)
     initRender(vm)
     callHook(vm, 'beforeCreate')
     initInjections(vm) // resolve injections before data/props
+    // 对 props, methods, data, computed, watch 进行初始化
     initState(vm)
     initProvide(vm) // resolve provide after data/props
     callHook(vm, 'created')
 
+    // Vue 实例初始化性能测试【结束】
     /* istanbul ignore if */
     if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
       vm._name = formatComponentName(vm, false)
@@ -65,12 +72,15 @@ export function initMixin (Vue: Class<Component>) {
       measure(`${vm._name} init`, startTag, endTag)
     }
 
+    // 如果定义了挂载的元素则执行挂载
     if (vm.$options.el) {
+      // 执行的主要是 core/instance/lifecycle 的 mountComponent 方法
       vm.$mount(vm.$options.el)
     }
   }
 }
 
+// 组件实例的参数合并
 function initInternalComponent (vm: Component, options: InternalComponentOptions) {
   const opts = vm.$options = Object.create(vm.constructor.options)
   // doing this because it's faster than dynamic enumeration.

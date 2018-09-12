@@ -24,9 +24,11 @@ export function validateProp (
   vm?: Component
 ): any {
   const prop = propOptions[key]
+  // 是否在 propsData 未定义
   const absent = !hasOwn(propsData, key)
   let value = propsData[key]
   // handle boolean props
+  // 类型中等于或者包含 Boolean
   if (isType(Boolean, prop.type)) {
     if (absent && !hasOwn(prop, 'default')) {
       value = false
@@ -40,6 +42,7 @@ export function validateProp (
     value = getPropDefaultValue(vm, prop, key)
     // since the default value is a fresh copy,
     // make sure to observe it.
+    // 没看懂【?】
     const prevShouldConvert = observerState.shouldConvert
     observerState.shouldConvert = true
     observe(value)
