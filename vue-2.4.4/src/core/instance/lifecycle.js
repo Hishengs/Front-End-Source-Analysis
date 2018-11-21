@@ -24,6 +24,7 @@ export function initLifecycle (vm: Component) {
   const options = vm.$options
 
   // 没看懂【?】定位父组件？
+  // 定位到第一个非抽象父组件
   // locate first non-abstract parent
   let parent = options.parent
   if (parent && !options.abstract) {
