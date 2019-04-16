@@ -39,6 +39,7 @@ export function initMixin (Vue: Class<Component>) {
       // internal component options needs special treatment.
       initInternalComponent(vm, options)
     } else {
+      // 将当前实例的配置项与原型链上的配置项合并
       vm.$options = mergeOptions(
         resolveConstructorOptions(vm.constructor),
         options || {},
@@ -99,6 +100,7 @@ function initInternalComponent (vm: Component, options: InternalComponentOptions
   }
 }
 
+// 将原型链上的配置项合并返回
 export function resolveConstructorOptions (Ctor: Class<Component>) {
   let options = Ctor.options
   if (Ctor.super) {
