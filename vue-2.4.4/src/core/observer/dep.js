@@ -50,7 +50,9 @@ Dep.target = null
 const targetStack = []
 
 export function pushTarget (_target: Watcher) {
+  // 如果原先存在，先保存起来，后续使用 popTarget 恢复
   if (Dep.target) targetStack.push(Dep.target)
+  // 将给定的 watcher 设置为当前目标
   Dep.target = _target
 }
 

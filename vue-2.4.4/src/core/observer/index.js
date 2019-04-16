@@ -43,6 +43,8 @@ export class Observer {
     this.vmCount = 0
     def(value, '__ob__', this)
     if (Array.isArray(value)) {
+      // 修改数组默认原型链，重新定义原型链上的 push, pop 等方法，使得数组发生增删时能触发依赖更新
+      // 因为 Object.defineProperty 只针对 setter, getter，对数组的增删无感知
       const augment = hasProto
         ? protoAugment
         : copyAugment
@@ -138,9 +140,12 @@ export function defineReactive (
   customSetter?: ?Function,
   shallow?: boolean
 ) {
+  // 闭包，保存的数据的依赖实例
   const dep = new Dep()
 
   const property = Object.getOwnPropertyDescriptor(obj, key)
+
+  // 例如冻结（freezed）或者封闭（sealed）的对象是不可观察的
   if (property && property.configurable === false) {
     return
   }
@@ -155,8 +160,10 @@ export function defineReactive (
     configurable: true,
     get: function reactiveGetter () {
       const value = getter ? getter.call(obj) : val
+      // 通知当前依赖此数据的 watcher 添加依赖
       if (Dep.target) {
         dep.depend()
+        // 是否需要深度收集依赖
         if (childOb) {
           childOb.dep.depend()
           if (Array.isArray(value)) {
@@ -169,6 +176,7 @@ export function defineReactive (
     set: function reactiveSetter (newVal) {
       const value = getter ? getter.call(obj) : val
       /* eslint-disable no-self-compare */
+      // 值没变，直接忽略 或者值是 NaN
       if (newVal === value || (newVal !== newVal && value !== value)) {
         return
       }
@@ -182,6 +190,7 @@ export function defineReactive (
         val = newVal
       }
       childOb = !shallow && observe(newVal)
+      // 通知所有依赖此数据的 watcher 进行更新
       dep.notify()
     }
   })

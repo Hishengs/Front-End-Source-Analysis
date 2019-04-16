@@ -31,7 +31,7 @@ export function initMixin (Vue: Class<Component>) {
     // a flag to avoid this being observed
     vm._isVue = true
     // _isComponent 用于标记实例是否是内部组件【?】
-    // 参数合并
+    // 配置合并，将外部配置转为内部 $options 配置
     // merge options
     if (options && options._isComponent) {
       // optimize internal component instantiation
@@ -46,6 +46,7 @@ export function initMixin (Vue: Class<Component>) {
       )
     }
     /* istanbul ignore else */
+    // 在开发环境中检测是否支持 ES6 的 Proxy，如果支持则使用其代替 defineProperty
     if (process.env.NODE_ENV !== 'production') {
       initProxy(vm)
     } else {

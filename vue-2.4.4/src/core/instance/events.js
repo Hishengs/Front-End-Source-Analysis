@@ -12,7 +12,7 @@ import { updateListeners } from '../vdom/helpers/index'
 export function initEvents (vm: Component) {
   // 保存组件的所有事件回调的事件对象
   vm._events = Object.create(null)
-  // 是否有事件钩子【?】
+  // 用于标识是否有生命周期钩子事件监听
   vm._hasHookEvent = false
   // 没看懂【?】
   // init parent attached events
@@ -54,9 +54,12 @@ export function eventsMixin (Vue: Class<Component>) {
         this.$on(event[i], fn)
       }
     } else {
+      // 每一个事件类型对应一个事件回调列表，当事件发生时，依次调用列表中的回调函数
       (vm._events[event] || (vm._events[event] = [])).push(fn)
       // optimize hook:event cost by using a boolean flag marked at registration
       // instead of a hash lookup
+      // 生命周期钩子事件监听
+      // 例如 hook:created 添加一个 created 生命周期钩子
       if (hookRE.test(event)) {
         vm._hasHookEvent = true
       }

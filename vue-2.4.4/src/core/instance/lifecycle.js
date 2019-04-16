@@ -23,7 +23,8 @@ export let isUpdatingChildComponent: boolean = false
 export function initLifecycle (vm: Component) {
   const options = vm.$options
 
-  // 没看懂【?】定位父组件？
+  // 寻找上层【非抽象组件】作为父组件
+  // 例如 keep-alive 这种属于内部抽象组件
   // locate first non-abstract parent
   let parent = options.parent
   if (parent && !options.abstract) {
@@ -33,22 +34,23 @@ export function initLifecycle (vm: Component) {
     parent.$children.push(vm)
   }
 
-  // $parent 代表父组件
+  // 设置父组件
   vm.$parent = parent
-  // $root 代表根组件，如果没有，表示本身就是根组件
+  // 设置根组件，如果没有，表示本身就是根组件
+  // 每个组件可以直接使用此属性定位到根组件
   vm.$root = parent ? parent.$root : vm
 
   // 子组件列表
   vm.$children = []
-  // 对子组件的实例引用
+  // 对子组件或者 DOM 元素的引用
   vm.$refs = {}
 
   vm._watcher = null
   vm._inactive = null
   vm._directInactive = false
-  vm._isMounted = false
-  vm._isDestroyed = false
-  vm._isBeingDestroyed = false
+  vm._isMounted = false   // 对应 mounted 生命周期钩子，callHook(vm, 'mounted');
+  vm._isDestroyed = false // 对应 destroyed 生命周期钩子，callHook(vm, 'destroyed');
+  vm._isBeingDestroyed = false // callHook(vm, 'destroyed'); 时此值会被设置为 true，防止重复 destroyed
 }
 
 export function lifecycleMixin (Vue: Class<Component>) {

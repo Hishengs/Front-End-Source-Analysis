@@ -17,6 +17,12 @@ type PropOptions = {
   validator: ?Function
 };
 
+/**
+ * 检查获取 props 的值，如果没有，设置默认值并返回
+ * 1. propsData 提供了，直接返回其提供的值
+ * 2. propsData 未提供，检查 props 是否定义了 default 字段，定义了则返回 default 设置的默认值
+ * 3. default 未提供，返回 undefined
+ */
 export function validateProp (
   key: string,
   propOptions: Object,
@@ -24,8 +30,8 @@ export function validateProp (
   vm?: Component
 ): any {
   const prop = propOptions[key]
-  // 是否在 propsData 未定义
   const absent = !hasOwn(propsData, key)
+  // 1. propsData 提供了，直接返回其提供的值
   let value = propsData[key]
   // handle boolean props
   // 类型中等于或者包含 Boolean
@@ -39,6 +45,7 @@ export function validateProp (
   // check default value
   // value 存在 undefined 的情况，例如：props: ['propA', 'propB'],
   if (value === undefined) {
+    // 2. propsData 未提供，检查 props 是否定义了 default 字段，定义了则返回 default 设置的默认值
     value = getPropDefaultValue(vm, prop, key)
     // since the default value is a fresh copy,
     // make sure to observe it.

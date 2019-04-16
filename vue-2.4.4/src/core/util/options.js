@@ -333,6 +333,7 @@ export function mergeOptions (
     }
   }
   function mergeField (key) {
+    // 寻找指定 key 的用户自定义合并策略，没有则使用默认策略
     const strat = strats[key] || defaultStrat
     options[key] = strat(parent[key], child[key], vm, key)
   }

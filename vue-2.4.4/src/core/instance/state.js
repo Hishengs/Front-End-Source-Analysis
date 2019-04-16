@@ -75,9 +75,19 @@ function checkOptionType (vm: Component, name: string) {
 }
 
 function initProps (vm: Component, propsOptions: Object) {
-  // 创建实例时传递的 props，主要用于测试
+  // 创建实例时传递的 props
+  /**
+   * 1. 组件 <my-component name="Jason"></my-component>
+   * 2. 实例化提供的 propsData
+   *    new Vue({
+   *      propsData: {
+   *        name: 'Jason'
+   *      },
+   *    });
+   * 情况 1 实际上是基于 情况 2
+   */
   const propsData = vm.$options.propsData || {}
-  // 初始化实际 props
+  // 组件定义的 props
   const props = vm._props = {}
   // cache prop keys so that future props updates can iterate using Array
   // instead of dynamic object key enumeration.
@@ -90,7 +100,12 @@ function initProps (vm: Component, propsOptions: Object) {
   observerState.shouldConvert = isRoot
   for (const key in propsOptions) {
     keys.push(key)
-    // 检查 props 的值，如果没有，设置默认值并返回
+    // 检查获取 props 的值，如果没有，设置默认值并返回
+    /**
+     * 1. propsData 提供了，直接返回其提供的值
+     * 2. propsData 未提供，检查 props 是否定义了 default 字段，定义了则返回 default 设置的默认值
+     * 3. default 未提供，返回 undefined
+     */
     const value = validateProp(key, propsOptions, propsData, vm)
     /* istanbul ignore else */
     if (process.env.NODE_ENV !== 'production') {
@@ -113,11 +128,13 @@ function initProps (vm: Component, propsOptions: Object) {
         }
       })
     } else {
+      // 定义为响应式属性
       defineReactive(props, key, value)
     }
     // static props are already proxied on the component's prototype
     // during Vue.extend(). We only need to proxy props defined at
     // instantiation here.
+    // 直接代理在根实例上
     if (!(key in vm)) {
       proxy(vm, `_props`, key)
     }
@@ -130,7 +147,7 @@ function initData (vm: Component) {
   data = vm._data = typeof data === 'function'
     ? getData(data, vm)
     : data || {}
-  // data 必须是纯对象或者执行结果是对象的函数
+  // data 必须是纯对象（function, DOM 元素这种等等不是纯对象）或者执行结果是纯对象的函数
   if (!isPlainObject(data)) {
     data = {}
     process.env.NODE_ENV !== 'production' && warn(
@@ -161,13 +178,13 @@ function initData (vm: Component) {
         `Use prop default value instead.`,
         vm
       )
-    } else if (!isReserved(key)) {
-      // 在实例上为 data 的各个属性创建代理，vm.a === vm.data.a
+    } else if (!isReserved(key)) { // 检查是否是已预留的属性（$, _ 开头的）
+      // 在实例上为 data 的各个属性创建代理，vm.a === vm._data.a
       proxy(vm, `_data`, key)
     }
   }
   // observe data
-  // 为 data 添加观察
+  // 为 data 添加观察，逐个定义为响应性属性
   observe(data, true /* asRootData */)
 }
 
@@ -185,6 +202,8 @@ const computedWatcherOptions = { lazy: true }
 function initComputed (vm: Component, computed: Object) {
   process.env.NODE_ENV !== 'production' && checkOptionType(vm, 'computed')
   // 所有计算属性相关的观察者
+  // 每一个计算属性对应一个观察者，用于监听所依赖的数据的变化
+  // 当依赖的数据发生变化时，更新计算属性的值
   const watchers = vm._computedWatchers = Object.create(null)
   // computed properties are just getters during SSR
   const isSSR = isServerRendering()
@@ -282,10 +301,14 @@ function initMethods (vm: Component, methods: Object) {
   process.env.NODE_ENV !== 'production' && checkOptionType(vm, 'methods')
   const props = vm.$options.props
   for (const key in methods) {
-    // 1. 检查是否与 props 冲突
-    // 2. 检查方法是否为 null
-    // 3. 检查是否是保留的关键字
+    /**
+     * 前置检查：
+     * 1. 检查方法是否未定义（null 或者 undefined）
+     * 2. 检查是否与 props 冲突
+     * 3. 检查根实例是否已存在且是已预留的属性（$, _ 开头的）
+    */
     if (process.env.NODE_ENV !== 'production') {
+      // 1. 检查方法是否未定义（null 或者 undefined）
       if (methods[key] == null) {
         warn(
           `Method "${key}" has an undefined value in the component definition. ` +
@@ -293,14 +316,14 @@ function initMethods (vm: Component, methods: Object) {
           vm
         )
       }
-      // 检查字段是否已在 props 定义过
+      // 2. 检查是否与 props 冲突
       if (props && hasOwn(props, key)) {
         warn(
           `Method "${key}" has already been defined as a prop.`,
           vm
         )
       }
-      // 检查是否是保留关键字
+      // 3. 检查根实例是否已存在且是已预留的属性（$, _ 开头的）
       if ((key in vm) && isReserved(key)) {
         warn(
           `Method "${key}" conflicts with an existing Vue instance method. ` +
@@ -308,6 +331,11 @@ function initMethods (vm: Component, methods: Object) {
         )
       }
     }
+    /**
+     * 将方法定义在根实例上
+     * 如果方法未定义，直接给一个空函数
+     * 未避免方法丢失 this, 直接 bind 强制绑定
+     */
     vm[key] = methods[key] == null ? noop : bind(methods[key], vm)
   }
 }
@@ -348,6 +376,7 @@ export function stateMixin (Vue: Class<Component>) {
   // flow somehow has problems with directly declared definition object
   // when using Object.defineProperty, so we have to procedurally build up
   // the object here.
+  // 通过 $data 和 $props 代理 _data 和 _props (真正存放数据的地方)
   const dataDef = {}
   dataDef.get = function () { return this._data }
   const propsDef = {}
@@ -370,6 +399,7 @@ export function stateMixin (Vue: Class<Component>) {
   Vue.prototype.$set = set
   Vue.prototype.$delete = del
 
+  // 主动监听【函数表达式】或者【计算函数】涉及数据的变化
   Vue.prototype.$watch = function (
     expOrFn: string | Function,
     cb: any,
@@ -385,6 +415,7 @@ export function stateMixin (Vue: Class<Component>) {
     if (options.immediate) {
       cb.call(vm, watcher.value)
     }
+    // 返回一个函数用于解除监听
     return function unwatchFn () {
       watcher.teardown()
     }

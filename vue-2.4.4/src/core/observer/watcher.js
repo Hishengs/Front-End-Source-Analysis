@@ -65,10 +65,12 @@ export default class Watcher {
     this.newDeps = []
     this.depIds = new Set()
     this.newDepIds = new Set()
-    // 监听的表达式，类似于 `a.b.c`
+    // 解析出观察对象的字符串，从中收集依赖
     this.expression = process.env.NODE_ENV !== 'production'
       ? expOrFn.toString()
       : ''
+
+    // 解析观察对象的 getter
     // parse expression for getter
     if (typeof expOrFn === 'function') {
       this.getter = expOrFn
@@ -90,6 +92,7 @@ export default class Watcher {
       : this.get()
   }
 
+  // 收集依赖，计算观察对象的值
   /**
    * Evaluate the getter, and re-collect dependencies.
    */
@@ -136,7 +139,7 @@ export default class Watcher {
   /**
    * Clean up for dependency collection.
    */
-  // 新依赖性与旧依赖性做比较，移除不需要的依赖性，并交换新旧依赖，重置新依赖为空
+  // 新依赖项与旧依赖项做比较，移除不需要的依赖项，并交换新旧依赖，重置新依赖为空
   cleanupDeps () {
     let i = this.deps.length
     while (i--) {
@@ -161,6 +164,8 @@ export default class Watcher {
    */
   update () {
     /* istanbul ignore else */
+    // dirty 主要目的是防止多个依赖触发更新，通过设置 dirty，在数据 getter 时一次性计算（evaluate）
+    // 参见：state.js 下的 createComputedGetter 函数
     if (this.lazy) {
       this.dirty = true
     } else if (this.sync) {
@@ -195,6 +200,7 @@ export default class Watcher {
             handleError(e, this.vm, `callback for watcher "${this.expression}"`)
           }
         } else {
+          // 观察的对象数据发送变化时，触发回调函数
           this.cb.call(this.vm, value, oldValue)
         }
       }
