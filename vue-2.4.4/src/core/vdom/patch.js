@@ -236,6 +236,7 @@ export function createPatchFunction (backend) {
     insert(parentElm, vnode.elm, refElm)
   }
 
+  // 最终将创建的元素插入到 DOM 的方法
   function insert (parent, elm, ref) {
     if (isDef(parent)) {
       if (isDef(ref)) {
@@ -310,6 +311,7 @@ export function createPatchFunction (backend) {
       if (isDef(i = data.hook) && isDef(i = i.destroy)) i(vnode)
       for (i = 0; i < cbs.destroy.length; ++i) cbs.destroy[i](vnode)
     }
+    // 递归销毁子节点
     if (isDef(i = vnode.children)) {
       for (j = 0; j < vnode.children.length; ++j) {
         invokeDestroyHook(vnode.children[j])
@@ -442,6 +444,7 @@ export function createPatchFunction (backend) {
     }
   }
 
+  // 关键的节点对比方法
   function patchVnode (oldVnode, vnode, insertedVnodeQueue, removeOnly) {
     if (oldVnode === vnode) {
       return
@@ -616,6 +619,7 @@ export function createPatchFunction (backend) {
   }
 
   return function patch (oldVnode, vnode, hydrating, removeOnly, parentElm, refElm) {
+    // 新节点为空，直接将旧节点销毁
     if (isUndef(vnode)) {
       if (isDef(oldVnode)) invokeDestroyHook(oldVnode)
       return
@@ -624,16 +628,23 @@ export function createPatchFunction (backend) {
     let isInitialPatch = false
     const insertedVnodeQueue = []
 
+    // 旧节点是否存在
     if (isUndef(oldVnode)) {
       // empty mount (likely as component), create new root element
       isInitialPatch = true
+      // 旧节点不存在，基于新的节点创建并插入元素
       createElm(vnode, insertedVnodeQueue, parentElm, refElm)
     } else {
+      // 旧节点是否是真实的节点元素
       const isRealElement = isDef(oldVnode.nodeType)
+      // 如果是虚拟节点且与新节点相同（key 值相同，即位置相同的同类节点）
+      // 则直接往旧节点合并即可
       if (!isRealElement && sameVnode(oldVnode, vnode)) {
         // patch existing root node
         patchVnode(oldVnode, vnode, insertedVnodeQueue, removeOnly)
       } else {
+        // 如果是真实的节点元素，其实代表组件第一次挂载在 DOM 元素上
+        // 此时需要将真实的节点元素转为虚拟的节点便于虚拟节点之间的比较（diff）
         if (isRealElement) {
           // mounting to a real element
           // check if this is server-rendered content and if we can perform
@@ -663,6 +674,7 @@ export function createPatchFunction (backend) {
         // replacing existing element
         const oldElm = oldVnode.elm
         const parentElm = nodeOps.parentNode(oldElm)
+        // 根据新的虚拟节点创建新的元素，并将新元素插入到父元素中
         createElm(
           vnode,
           insertedVnodeQueue,
@@ -702,6 +714,7 @@ export function createPatchFunction (backend) {
           }
         }
 
+        // 从父元素移除旧的子元素并将旧虚拟节点销毁
         if (isDef(parentElm)) {
           removeVnodes(parentElm, [oldVnode], 0, 0)
         } else if (isDef(oldVnode.tag)) {
